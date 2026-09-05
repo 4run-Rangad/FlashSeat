@@ -57,6 +57,42 @@ public class UserService {
         return toUserResponse(user);
     }
 
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(this::toUserResponse)
+                .toList();
+    }
+
+    public UserResponse updateUser(
+            Long userId,
+            UserUpdateRequest request
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User " + userId + " not found"
+                ));
+
+        if (!user.getEmail().equals(request.email()) && userRepository.existsByEmail(request.email())) {
+
+            throw new EmailAlreadyExistsException(
+                    "Email " + request.email() + " is already registered"
+            );
+        }
+
+        user.setEmail(request.email());
+
+        String passwordHash = passwordEncoder.encode(request.password());
+        user.setPasswordHash(passwordHash);
+
+        user.setUpdatedAt(OffsetDateTime.now());
+
+        User updatedUser = userRepository.save(user);
+
+        return toUserResponse(updatedUser);
+    }
+
     private UserResponse toUserResponse(User user) {
         return new UserResponse(
                 user.getId(),
