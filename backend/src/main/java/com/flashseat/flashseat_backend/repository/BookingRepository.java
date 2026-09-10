@@ -24,7 +24,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             SELECT b
             FROM Booking b
             WHERE b.status = :status
-            AND b.expiresAt < :time
+            AND b.expiresAt <= :time
             """)
     List<Booking> findExpiredBookingsForUpdate(
             @Param("status") BookingStatus status,

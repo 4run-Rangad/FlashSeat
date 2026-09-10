@@ -2,11 +2,10 @@ package com.flashseat.flashseat_backend.controller;
 
 import com.flashseat.flashseat_backend.dto.EventCreateRequest;
 import com.flashseat.flashseat_backend.dto.EventResponse;
-import com.flashseat.flashseat_backend.entity.Event;
 import com.flashseat.flashseat_backend.service.EventService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +27,7 @@ public class EventController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public EventResponse createEvent(
             @Valid
             @RequestBody EventCreateRequest request

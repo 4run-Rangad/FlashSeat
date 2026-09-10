@@ -5,6 +5,7 @@ import com.flashseat.flashseat_backend.dto.SeatResponse;
 import com.flashseat.flashseat_backend.service.SeatService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class SeatController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public SeatResponse createSeat(
             @PathVariable Long eventId,
             @Valid @RequestBody SeatCreateRequest request

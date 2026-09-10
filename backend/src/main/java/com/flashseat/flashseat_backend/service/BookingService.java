@@ -6,6 +6,7 @@ import com.flashseat.flashseat_backend.entity.*;
 import com.flashseat.flashseat_backend.exception.*;
 import com.flashseat.flashseat_backend.repository.*;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -51,6 +52,8 @@ public class BookingService {
             throw new IllegalArgumentException("Duplicate seat Ids are not allowed");
         }
 
+        requestedSeatIds = requestedSeatIds.stream().sorted().toList();
+
         List<Seat> seats = seatRepository.findByIdInForUpdate(requestedSeatIds);
 
         if (seats.size() != requestedSeatIds.size()){
@@ -59,8 +62,8 @@ public class BookingService {
 
         for (Seat seat : seats){
             if (!seat.getEvent().getId().equals(eventId)) {
-                throw new RuntimeException(
-                        "Seat " + seat.getSeatNumber() + "does not belong to this event"
+                throw new InvalidSeatException(
+                        "Seat " + seat.getSeatNumber() + " does not belong to this event"
                 );
             }
 
@@ -102,9 +105,15 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponse confirmBooking(Long bookingId) {
+    public BookingResponse confirmBooking(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingId + " not found"));
+
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(
+                    "You are not allowed to confirm this booking"
+            );
+        }
 
         if (booking.getStatus() != BookingStatus.RESERVED){
             throw new BookingInvalidStateException(
@@ -113,7 +122,7 @@ public class BookingService {
             );
         }
 
-        if (booking.getExpiresAt().isBefore(OffsetDateTime.now())) {
+        if (!booking.getExpiresAt().isAfter(OffsetDateTime.now())) {
             throw new BookingInvalidStateException(
                     "Booking " + bookingId + " has expired"
             );
@@ -139,12 +148,17 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponse getBookingById(Long bookingId) {
+    public BookingResponse getBookingById(Long bookingId, Long userId) {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(
                         "Booking " + bookingId + " not found"
                 ));
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(
+                    "You are not allowed to view this booking"
+            );
+        }
 
         return toBookingResponse(booking);
     }
@@ -165,12 +179,18 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponse cancelBooking(Long bookingId) {
+    public BookingResponse cancelBooking(Long bookingId, Long userId) {
 
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(
                         "Booking " + bookingId + " not found"
                 ));
+
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException(
+                    "You are not allowed to cancel this booking"
+            );
+        }
 
         if (booking.getStatus() != BookingStatus.RESERVED) {
             throw new BookingInvalidStateException(

@@ -22,7 +22,7 @@ public class BookingExpirationService {
 
     @Scheduled(fixedRate = 10000)
     @Transactional
-    public  void expireBookings(){
+    public void expireBookings(){
 
         OffsetDateTime now = OffsetDateTime.now();
 

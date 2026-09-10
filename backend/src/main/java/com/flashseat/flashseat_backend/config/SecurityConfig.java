@@ -1,27 +1,35 @@
 package com.flashseat.flashseat_backend.config;
 
+import com.flashseat.flashseat_backend.security.CustomAccessDeniedHandler;
 import com.flashseat.flashseat_backend.security.CustomAuthenticationEntryPoint;
 import com.flashseat.flashseat_backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            CustomAuthenticationEntryPoint authenticationEntryPoint
+            CustomAuthenticationEntryPoint authenticationEntryPoint,
+            CustomAccessDeniedHandler accessDeniedHandler
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -34,7 +42,9 @@ public class SecurityConfig {
                         )
                 )
                 .exceptionHandling(exception ->
-                        exception.authenticationEntryPoint(authenticationEntryPoint)
+                        exception
+                                .authenticationEntryPoint(authenticationEntryPoint)
+                                .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(

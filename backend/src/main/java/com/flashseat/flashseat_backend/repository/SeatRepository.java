@@ -2,7 +2,6 @@ package com.flashseat.flashseat_backend.repository;
 
 import com.flashseat.flashseat_backend.entity.Seat;
 import jakarta.persistence.LockModeType;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;

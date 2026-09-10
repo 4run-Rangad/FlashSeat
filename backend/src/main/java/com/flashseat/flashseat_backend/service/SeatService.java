@@ -4,6 +4,7 @@ import com.flashseat.flashseat_backend.dto.SeatCreateRequest;
 import com.flashseat.flashseat_backend.dto.SeatResponse;
 import com.flashseat.flashseat_backend.entity.Event;
 import com.flashseat.flashseat_backend.entity.Seat;
+import com.flashseat.flashseat_backend.exception.EventNotFoundException;
 import com.flashseat.flashseat_backend.exception.SeatAlreadyExistsException;
 import com.flashseat.flashseat_backend.repository.EventRepository;
 import com.flashseat.flashseat_backend.repository.SeatRepository;
@@ -27,7 +28,7 @@ public class SeatService {
     public SeatResponse createSeat(Long eventId, SeatCreateRequest request) {
 
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
+                .orElseThrow(() -> new EventNotFoundException("Event " + eventId + " not found"));
 
         if(seatRepository.existsByEventIdAndSeatNumber(
                 eventId,
@@ -51,7 +52,7 @@ public class SeatService {
     public List<SeatResponse> getSeatByEvent(Long eventId){
 
         if (!eventRepository.existsById(eventId)){
-            throw new RuntimeException("Event not found");
+            throw new EventNotFoundException("Event " + eventId + " not found");
         }
 
         return seatRepository.findByEventId(eventId)

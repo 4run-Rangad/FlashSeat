@@ -2,14 +2,18 @@ package com.flashseat.flashseat_backend.service;
 
 import com.flashseat.flashseat_backend.dto.UserCreateRequest;
 import com.flashseat.flashseat_backend.dto.UserResponse;
+import com.flashseat.flashseat_backend.dto.UserUpdateRequest;
 import com.flashseat.flashseat_backend.entity.User;
+import com.flashseat.flashseat_backend.entity.UserRole;
 import com.flashseat.flashseat_backend.exception.EmailAlreadyExistsException;
 import com.flashseat.flashseat_backend.exception.UserNotFoundException;
 import com.flashseat.flashseat_backend.repository.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -40,6 +44,7 @@ public class UserService {
         User user = User.builder()
                 .email(request.email())
                 .passwordHash(passwordHash)
+                .role(UserRole.USER)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -49,7 +54,14 @@ public class UserService {
         return toUserResponse(savedUser);
     }
 
-    public UserResponse getUserById(Long userId) {
+    public UserResponse getUserById(Long userId, Long authenticatedUserId) {
+
+        if (!userId.equals(authenticatedUserId)) {
+            throw new AccessDeniedException(
+                    "Access Denied!"
+            );
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(
                         "User " + userId + " not found"
@@ -67,8 +79,16 @@ public class UserService {
 
     public UserResponse updateUser(
             Long userId,
-            UserUpdateRequest request
+            UserUpdateRequest request,
+            Long authenticatedUserId
     ) {
+
+        if (!userId.equals(authenticatedUserId)) {
+            throw new AccessDeniedException(
+                    "Access Denied!"
+            );
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(
                         "User " + userId + " not found"

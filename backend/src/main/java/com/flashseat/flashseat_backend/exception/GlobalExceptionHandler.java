@@ -98,6 +98,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidSeatException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleInvalidSeat(
+            InvalidSeatException exception
+    ) {
+        return Map.of(
+                "message", exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationException(

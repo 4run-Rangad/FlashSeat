@@ -3,9 +3,13 @@ package com.flashseat.flashseat_backend.controller;
 import com.flashseat.flashseat_backend.dto.UserCreateRequest;
 import com.flashseat.flashseat_backend.dto.UserResponse;
 import com.flashseat.flashseat_backend.dto.UserUpdateRequest;
+import com.flashseat.flashseat_backend.entity.User;
 import com.flashseat.flashseat_backend.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,20 +33,30 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('USER')")
     public UserResponse getUserById(@PathVariable Long userId) {
-        return userService.getUserById(userId);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+        Long authenticatedUserId = authenticatedUser.getId();
+        return userService.getUserById(userId, authenticatedUserId);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @PutMapping("/{userId}")
+    @PreAuthorize("hasRole('USER')")
     public UserResponse updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UserUpdateRequest request
             ) {
-        return userService.updateUser(userId, request);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+
+        Long authenticatedUserId = authenticatedUser.getId();
+        return userService.updateUser(userId, request, authenticatedUserId);
     }
 }

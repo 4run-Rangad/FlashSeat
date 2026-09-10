@@ -3,11 +3,13 @@ package com.flashseat.flashseat_backend.security;
 import com.flashseat.flashseat_backend.entity.User;
 import com.flashseat.flashseat_backend.repository.UserRepository;
 import com.flashseat.flashseat_backend.service.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -64,7 +66,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 new UsernamePasswordAuthenticationToken(
                                         user,
                                         null,
-                                        Collections.emptyList()
+                                        Collections.singletonList(
+                                                new SimpleGrantedAuthority(
+                                                        "ROLE_" + user.getRole().name()
+                                                )
+                                        )
                                 );
 
                         SecurityContextHolder.getContext()
@@ -72,12 +78,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (JwtException e) {
             //invalid or expired jwt
-            e.printStackTrace();
         }
-
-
         filterChain.doFilter(request, response);
     }
 }
