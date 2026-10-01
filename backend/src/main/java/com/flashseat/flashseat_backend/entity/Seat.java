@@ -30,6 +30,11 @@ public class Seat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false)
+    @Builder.Default
+    private Long version = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "event_id",
