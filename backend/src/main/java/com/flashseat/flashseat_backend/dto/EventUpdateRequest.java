@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.OffsetDateTime;
 
-public record EventCreateRequest(
+public record EventUpdateRequest(
 
         @NotBlank(message = "Event name is required")
         String name,

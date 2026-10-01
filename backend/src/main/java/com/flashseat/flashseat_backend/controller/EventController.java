@@ -2,6 +2,7 @@ package com.flashseat.flashseat_backend.controller;
 
 import com.flashseat.flashseat_backend.dto.EventCreateRequest;
 import com.flashseat.flashseat_backend.dto.EventResponse;
+import com.flashseat.flashseat_backend.dto.EventUpdateRequest;
 import com.flashseat.flashseat_backend.service.EventService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,4 +41,19 @@ public class EventController {
         return eventService.getEventById(id);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public EventResponse updateEvent(
+            @PathVariable Long id,
+            @Valid @RequestBody EventUpdateRequest request
+            ) {
+        return eventService.updateEvent(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteEvent(@PathVariable Long id) {
+        eventService.deleteEvent(id);
+    }
 }

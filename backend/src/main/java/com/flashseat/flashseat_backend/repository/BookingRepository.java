@@ -42,4 +42,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     List<Booking> findByUserIdOrderByCreatedAtDesc(long userId);
+
+    List<Booking> findByEventId(Long eventId);
 }
