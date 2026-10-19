@@ -9,99 +9,63 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BookingService {
     private final BookingRepository bookingRepository;
-    private final BookingSeatRepository bookingSeatRepository;
     private final UserRepository userRepository;
-    private final EventRepository eventRepository;
-    private final SeatRepository seatRepository;
+    private final RedisLockService redisLockService;
+    private final BookingTxService bookingTxService;
 
     public BookingService(
             BookingRepository bookingRepository,
-            BookingSeatRepository bookingSeatRepository,
             UserRepository userRepository,
-            EventRepository eventRepository,
-            SeatRepository seatRepository
+            RedisLockService redisLockService,
+            BookingTxService bookingTxService
     ) {
         this.bookingRepository = bookingRepository;
-        this.bookingSeatRepository = bookingSeatRepository;
         this.userRepository = userRepository;
-        this.eventRepository = eventRepository;
-        this.seatRepository = seatRepository;
+        this.redisLockService = redisLockService;
+        this.bookingTxService = bookingTxService;
     }
 
-    @Transactional
     public BookingResponse createBooking(
             Long eventId,
             Long userId,
             BookingCreateRequest request
     ) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User " + userId + " not found"));
-
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Event " + eventId + " not found"));
-
         List<Long> requestedSeatIds = request.seatIds();
 
         if (requestedSeatIds.size() != requestedSeatIds.stream().distinct().count()) {
             throw new IllegalArgumentException("Duplicate seat Ids are not allowed");
         }
 
-        requestedSeatIds = requestedSeatIds.stream().sorted().toList();
+        List<Long> sortedSeatIds = requestedSeatIds.stream().sorted().toList();
 
-        List<Seat> seats = seatRepository.findByIdInForUpdate(requestedSeatIds);
+        List<String> lockKeys = sortedSeatIds.stream()
+                .map(seatId -> "lock:event:" + eventId + ":seat:" + seatId)
+                .toList();
 
-        if (seats.size() != requestedSeatIds.size()){
-            throw new SeatNotFoundException("One or more seats not found");
+        // 1. Acquire Redis locks atomically for all requested seats
+        Map<String, String> acquiredLocks = redisLockService.acquireLocks(lockKeys, Duration.ofSeconds(10));
+
+        if (acquiredLocks == null) {
+            throw new SeatNotAvailableException("One or more seats are currently being reserved by another user.");
         }
 
-        for (Seat seat : seats){
-            if (!seat.getEvent().getId().equals(eventId)) {
-                throw new InvalidSeatException(
-                        "Seat " + seat.getSeatNumber() + " does not belong to this event"
-                );
+        try {
+            // 2. Delegate DB operations to Spring proxy bean (@Transactional)
+            return bookingTxService.executeTransactionalBooking(eventId, userId, sortedSeatIds);
+        } finally {
+            // 3. Release Redis locks
+            for (Map.Entry<String, String> entry : acquiredLocks.entrySet()) {
+                redisLockService.releaseLock(entry.getKey(), entry.getValue());
             }
-
-            if (seat.getStatus() != SeatStatus.AVAILABLE) {
-                throw new SeatNotAvailableException("Seat " + seat.getSeatNumber() + " is not available");
-            }
         }
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expiresAt = now.plusMinutes(5);
-
-        Booking booking = Booking.builder()
-                .user(user)
-                .event(event)
-                .status(BookingStatus.RESERVED)
-                .createdAt(now)
-                .expiresAt(expiresAt)
-                .build();
-
-        Booking savedBooking = bookingRepository.save(booking);
-
-        for (Seat seat : seats){
-            seat.setStatus(SeatStatus.RESERVED);
-
-            BookingSeatId bookingSeatId = new BookingSeatId(
-                    savedBooking.getId(),
-                    seat.getId()
-            );
-
-            BookingSeat bookingSeat = BookingSeat.builder()
-                    .id(bookingSeatId)
-                    .seat(seat)
-                    .build();
-
-            savedBooking.addBookingSeat(bookingSeat);
-            bookingSeatRepository.save(bookingSeat);
-        }
-
-        return toBookingResponse(savedBooking);
     }
 
     @Transactional

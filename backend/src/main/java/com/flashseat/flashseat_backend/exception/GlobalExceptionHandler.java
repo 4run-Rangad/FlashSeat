@@ -118,6 +118,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(SeatAlreadyLockedException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleSeatAlreadyLocked(
+            SeatAlreadyLockedException exception
+    ) {
+        return Map.of(
+                "message", exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationException(
